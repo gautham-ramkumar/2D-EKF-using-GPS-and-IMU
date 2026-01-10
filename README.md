@@ -11,5 +11,4 @@ Standard GPS/GNSS sensors are accurate but operate at low frequencies (e.g., 1â€
 The filter is designed to handle signal loss. During dropouts, the error grows quadratically due to IMU drift. Upon exiting a tunnel, the EKF performs a "state correction" to snap back to the global truth, as visualized in the error plots.
 
 # Results
-
-
+<img width="1332" height="664" alt="image" src="https://github.com/user-attachments/assets/169f8ceb-da05-476b-beac-cda1b55ebcec" />
