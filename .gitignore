@@ -1,0 +1,9 @@
+# Build folders
+build*/
+
+# Generated inputs (tools/export_csv.py) and outputs (./build/ekf)
+data/
+output/
+
+# Editor
+.vscode/
