@@ -7,3 +7,8 @@ output/
 
 # Editor
 .vscode/
+
+# colcon (ROS 2 package)
+build_ros/
+install_ros/
+log/

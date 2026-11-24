@@ -1,0 +1,134 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+      Splitter Ratio: 0.5
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid (100 m)
+      Enabled: true
+      Cell Size: 100
+      Plane Cell Count: 80
+      Color: 90; 90; 95
+      Alpha: 0.5
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Name: GPS reference, labels, covariance trail
+      Enabled: true
+      Topic:
+        Value: /viz/markers
+        Depth: 100
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Namespaces:
+        covariance_current: true
+        covariance_trail: true
+        gps_reference: true
+        gps_rejected: true
+        labels: true
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: wheel odom (no GPS)
+      Enabled: true
+      Topic:
+        Value: /viz/wheel_odom/path
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Billboards
+      Line Width: 5
+      Color: 90; 160; 255
+      Alpha: 1
+      Pose Style: None
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: EKF-A (IMU+GPS)
+      Enabled: true
+      Topic:
+        Value: /viz/ekf_a/path
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Billboards
+      Line Width: 7
+      Color: 255; 127; 14
+      Alpha: 1
+      Pose Style: None
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: EKF-B (IMU+wheel+GPS)
+      Enabled: true
+      Topic:
+        Value: /viz/ekf_b/path
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Line Style: Billboards
+      Line Width: 7
+      Color: 44; 190; 77
+      Alpha: 1
+      Pose Style: None
+      Value: true
+    - Class: rviz_default_plugins/Odometry
+      Name: EKF-B pose
+      Enabled: true
+      Topic:
+        Value: /ekf/odom
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Keep: 1
+      Position Tolerance: 0.1
+      Angle Tolerance: 0.1
+      Shape:
+        Value: Arrow
+        Color: 44; 190; 77
+        Alpha: 1
+        Shaft Length: 40
+        Shaft Radius: 5
+        Head Length: 25
+        Head Radius: 12
+      Covariance:
+        Value: false
+        Position:
+          Value: true
+          Color: 255; 204; 38
+          Alpha: 0.5
+          Scale: 2
+        Orientation:
+          Value: false
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 30; 30; 34
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Name: Current View
+      Target Frame: map
+      Scale: 0.3
+      X: 1300
+      Y: 1000
+      Angle: 0
+      Value: TopDownOrtho (rviz_default_plugins)
+    Saved: ~
+Window Geometry:
+  Width: 1400
+  Height: 900
+  Displays:
+    collapsed: false

@@ -1,6 +1,6 @@
 # 2D Extended Kalman Filter for GPS / IMU / Wheel-Speed Localization (C++)
 
-A C++17 implementation of a 2D Extended Kalman Filter that fuses a 200 Hz IMU, 10 Hz GPS and 50 Hz wheel speed to localize a car. The filter runs offline on a 51-minute ROS 2 bag recorded on a Lincoln MKZ (Dataspeed drive-by-wire kit). Linear algebra is done with Eigen.
+A C++17 implementation of a 2D Extended Kalman Filter that fuses a 200 Hz IMU, 10 Hz GPS and 50 Hz wheel speed to localize a car. It runs offline on CSV exported from a 51-minute ROS 2 bag recorded on a Lincoln MKZ (Dataspeed drive-by-wire kit), and live as a ROS 2 node on the bag's topics, with RViz visualization. Linear algebra is done with Eigen.
 
 The project is a port of an earlier Python implementation. The C++ version reproduces the Python results to the reported precision, then adds wheel-speed fusion, which cuts dead-reckoning drift during 30 s GPS outages by about 20x.
 
@@ -119,6 +119,45 @@ python3 tools/plot_trajectory.py
 
 Run the binary from the project root, because the data paths are relative to it. The full run takes about 0.5 s in Release.
 
+## Live ROS 2 node and RViz
+
+`ros/ekf2d_ros` runs the filter live: it subscribes to `/imu/imu_uncompensated`, `/gps/fix` and `/vehicle/twist` while the bag plays, and shows three estimators side by side in RViz, all fed the same messages:
+
+| Track | Sensors | Purpose |
+|---|---|---|
+| EKF-A (orange) | IMU + GPS | the baseline filter |
+| EKF-B (green) | IMU + wheel speed + GPS | the main estimate |
+| wheel odom (blue) | wheel speed + gyro, no GPS | pure dead reckoning, for contrast |
+
+![RViz: EKF-A, EKF-B and wheel odometry on the full drive](docs/ekf_rviz_preview.gif)
+
+*The full drive replayed through the live node (preview at 64x). Full-length recording at 4x: [docs/ekf_rviz_4x.mp4](docs/ekf_rviz_4x.mp4) (11 minutes). In the long GPS outage, EKF-A (orange) swings far off, EKF-B (green) drifts much less, and the yellow 2-sigma ellipses grow to well over a kilometer before collapsing when GPS returns. The blue wheel odometry, with no GPS at all, drifts from the start.*
+
+Every GPS fix is drawn as a white reference point. GPS is the only absolute position source in the bag, so this is a reference, not ground truth. EKF-B's current 2-sigma position ellipse is drawn as a bright outline, and a faint copy is left every 60 m traveled, so the trail shows uncertainty growing during GPS outages and collapsing when GPS returns. Marker sizes are in meters and tuned for the whole-drive view; they are node parameters (`label_size`, `ellipse_spacing`, `ellipse_line_width`, `gps_point_size`). The node compiles `src/ekf2d.cpp` and `src/utm.cpp` directly, so there is one copy of the filter code.
+
+| Topic | Type | Content |
+|---|---|---|
+| `/ekf/odom` | `nav_msgs/Odometry` | EKF-B pose, speed and covariance at 50 Hz |
+| `/viz/ekf_a/path`, `/viz/ekf_b/path`, `/viz/wheel_odom/path` | `nav_msgs/Path` | the three trajectories, one pose every 0.5 s |
+| `/viz/markers` | `visualization_msgs/MarkerArray` | name labels, GPS reference points, EKF-B's gated-out fixes, covariance trail |
+| TF | `map -> base_link` | EKF-B pose |
+
+```bash
+# Build (from the project root, ROS 2 Jazzy)
+source /opt/ros/jazzy/setup.bash
+colcon build --base-paths ros --build-base build_ros --install-base install_ros \
+    --cmake-args -DCMAKE_BUILD_TYPE=Release -DPython3_EXECUTABLE=/usr/bin/python3
+
+# Play the bag at 5x, run the node and open RViz
+source install_ros/setup.bash
+ros2 launch ekf2d_ros ekf2d.launch.py bag:=/path/to/my_ros2_bag_data
+# Options: rate:=10  rviz:=false
+```
+
+Everything runs on the bag's clock (`ros2 bag play --clock`, `use_sim_time`).
+
+The node makes the offline pipeline causal. It uses the same preprocessing (gyro sign flip, 2 s parked bias, NaN and teleport rejection, UTM, gating), with one difference: offline, the start heading comes from the first fix more than 15 m ahead of the start, which is a fix from the "future". Live, the filter can only start once that fix has arrived, so it starts about 15 s later, at that fix, using the current wheel speed as the initial speed. On the full bag it computes the same IMU biases as the offline run (401 samples) and the same start heading (31.4 degrees), then EKF-B accepts 21,686 GPS fixes and gates out 84 (EKF-A: 21,740 and 30).
+
 ## Repository layout
 
 ```
@@ -130,6 +169,7 @@ include/ , src/
   ekf2d.*                the filter: predict, GPS update with gating, wheel-speed update
   evaluation.*           held-out and outage masks, score table
   output.*               CSV writers for plotting
+ros/ekf2d_ros/           ROS 2 package: live node, launch file, RViz config
 tools/
   export_csv.py          ROS 2 bag -> CSV
   plot_trajectory.py     plots the output
@@ -227,10 +267,18 @@ The C++ teleport filter compares consecutive fixes after NaN removal, while the 
 **22. Isolated GPS fixes rejected after long gaps.**
 After a long outage, a single valid fix can fail the chi-square gate because the filter has drifted far. Recovery only triggers after 10 consecutive rejections, so isolated fixes are discarded. This is a known trade-off of innovation gating. A possible improvement is to relax the gate when position uncertainty is already large.
 
+### ROS 2 node
+
+**23. `ModuleNotFoundError: No module named 'catkin_pkg'` during `colcon build`.**
+CMake's Python lookup picked a uv-installed `python3.11` from `~/.local/bin` instead of the system Python that ROS 2 Jazzy's packages are installed for, so `ament_cmake` couldn't parse `package.xml`. Fixed by pinning the interpreter with `-DPython3_EXECUTABLE=/usr/bin/python3`.
+
+**24. Choosing subscription QoS for bag playback.**
+A reliable subscription can't connect to a best-effort publisher, and replaying at high rates produces bursts of about 1,000 IMU messages per second. The node subscribes best-effort with a deep queue (2,000), which connects to either kind of publisher. At 20x playback it received all 21,770 usable GPS fixes after the filter start (21,831 usable minus the 61 before it), so no GPS messages were dropped.
+
 ## Limitations and possible improvements
 
 - Wheel speed reads about 1.4% lower than GPS-derived speed and is not calibrated. A fixed scale factor or a scale state would address this.
 - Heading drift dominates long outages. The wheel yaw rate in `/vehicle/twist` could be fused as a second turn-rate source.
 - Mean NIS is well below 2, so the noise parameters are conservative and could be retuned.
 - The 2D model ignores pitch and roll. A full 6-DoF strapdown filter, with gravity leveling and a non-holonomic constraint, handles the mount pitch properly.
-- The filter runs offline on CSV. Wrapping it as a ROS 2 node would let it run live on the bag.
+- The live node processes topics in arrival order. Across topics this can differ from timestamp order by a few milliseconds, so live results differ slightly from the offline run. A small time-ordered buffer would make the two match.
