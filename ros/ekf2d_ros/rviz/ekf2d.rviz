@@ -42,7 +42,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
       Line Style: Billboards
-      Line Width: 5
+      Line Width: 9
       Color: 90; 160; 255
       Alpha: 1
       Pose Style: None
@@ -57,7 +57,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
       Line Style: Billboards
-      Line Width: 7
+      Line Width: 12
       Color: 255; 127; 14
       Alpha: 1
       Pose Style: None
@@ -72,7 +72,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
       Line Style: Billboards
-      Line Width: 7
+      Line Width: 12
       Color: 44; 190; 77
       Alpha: 1
       Pose Style: None

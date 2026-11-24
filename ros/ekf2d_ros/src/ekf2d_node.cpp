@@ -86,10 +86,10 @@ public:
         baseFrame_ = declare_parameter("base_frame", std::string("base_link"));
         // Marker sizes are in meters, so they shrink on screen as you zoom out.
         // Defaults suit the whole-drive view (about 0.3 px per meter).
-        labelSize_ = declare_parameter("label_size", 60.0);
-        ellipseSpacing_ = declare_parameter("ellipse_spacing", 60.0);
+        labelSize_ = declare_parameter("label_size", 90.0);
+        ellipseSpacing_ = declare_parameter("ellipse_spacing", 120.0);
         ellipseLineWidth_ = declare_parameter("ellipse_line_width", 4.0);
-        gpsPointSize_ = declare_parameter("gps_point_size", 8.0);
+        gpsPointSize_ = declare_parameter("gps_point_size", 6.0);
 
         // Best effort with a deep queue: compatible with both reliable and
         // best-effort publishers, and absorbs bursts when the bag plays fast.
@@ -108,7 +108,8 @@ public:
         markerPub_ = create_publisher<visualization_msgs::msg::MarkerArray>("/viz/markers", 10);
         tfBroadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-        const char* names[kNumTracks] = {"EKF-A (IMU+GPS)", "EKF-B (IMU+wheel+GPS)", "wheel odom (no GPS)"};
+        // Short names: RViz squeezes spaces in text markers. The README has the legend.
+        const char* names[kNumTracks] = {"EKF-A", "EKF-B", "Wheel-odom"};
         const std_msgs::msg::ColorRGBA colors[kNumTracks] = {
             rgba(1.0, 0.5, 0.05), rgba(0.17, 0.75, 0.3), rgba(0.35, 0.63, 1.0)};
         const double labelOffsets[kNumTracks] = {1.2 * labelSize_, 2.4 * labelSize_, -1.2 * labelSize_};
@@ -120,7 +121,7 @@ public:
             tracks_[i].path.header.frame_id = mapFrame_;
             tracks_[i].pub = create_publisher<nav_msgs::msg::Path>(topics[i], 10);
         }
-        initPointsMarker(gpsRef_, "gps_reference", rgba(1.0, 1.0, 1.0, 0.8), gpsPointSize_);
+        initPointsMarker(gpsRef_, "gps_reference", rgba(0.85, 0.85, 0.85, 0.5), gpsPointSize_);
         initPointsMarker(rejected_, "gps_rejected", rgba(1.0, 0.1, 0.1), 2.0 * gpsPointSize_);
 
         RCLCPP_INFO(get_logger(), "Waiting for IMU (bias calibration, %.0f s)", kCalibrationTime);
@@ -277,7 +278,7 @@ private:
                 lastEllipseY_ = by;
                 markers.markers.push_back(makeEllipse(stamp, "covariance_trail",
                                                       ellipseCount_++ % kMaxEllipses,
-                                                      rgba(1.0, 0.8, 0.15, 0.45), ellipseLineWidth_));
+                                                      rgba(1.0, 0.8, 0.15, 0.6), ellipseLineWidth_));
             }
         }
         if (t - lastGpsRefT_ >= kGpsRefPeriod) {
@@ -405,6 +406,7 @@ private:
         m.action = Marker::ADD;
         m.pose.orientation.w = 1.0;
         m.scale.x = m.scale.y = size;   // point size (m)
+        m.pose.position.z = -2.0;       // under the paths, so agreeing tracks stay visible
         m.color = color;
     }
 
